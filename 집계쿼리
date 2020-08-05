@@ -1,0 +1,198 @@
+2020-06-22
+
+SQL 4강
+
+#집계쿼리
+
+-GROUP BY 절과 집계 함수를 사용한 쿼리
+-특정 항목(컬럼)별 최소, 최대, 평균 값 등을 산출
+-과목별 평균 점수, 월별 전체 매출액 등 기본적인 데이터 분석에 사용
+-GROUP BY 절과 집계 함수 단돈 사용 가능하나, 일반적으로 둘 모두를 사용
+
+
+
+#GROUP BY 절
+
+-WHERE절과 ORDER BY절 사이에 위치
+-GROUP BY 절에 기술한 컬럼이나 표현식 별로 데이터가 집계
+-GROUP BY 절에 기술한 컬럼, 표현식 이외의 항목은 SELECT 절에 명시 불가
+ (단, 집계 함수는 가능)
+
+-GROUP BY 절과 집계 함수를 함께 사용해야 의미 있는 결과를 도출
+
+
+#집계함수
+-여러 건의 데이터를 집계 연산한 결과를 반환하는 함수
+
+>COUNT()    : ()의 전체 개수 반환, 보통은 (*)
+>MAX()      : ()의 최댓값 
+>MIN()      : ()의 최솟값
+>SUM()      : ()의 합계
+>AVG()      : ()의 평균값
+>VARIANCE() : ()의 분산
+>STDDEV()   : ()의 표준편차
+
+-GROUP BY절 없이 집계 함수만 사용 시 조회되는 데이터 전체에 대한 집계 값 계산
+-GROUP BY절과 함께 사용 시 GROUP BY 절에 명시한 항목별 집계 값 계산
+-(*)는 COUNT 함수에서만 사용 가능
+
+
+#
+SELECT TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR
+FROM EMPLOYEES
+GROUP BY TO_CHAR(HIRE_DATE, 'YYYY')         --> 이 때 GROUP BY 절에 별칭(HIRE_YEAR)은 명시하면 안됌
+
+
+
+
+# 
+SELECT COUNT(*)
+FROM EMPLOYEES;
+
+---> 전체 로우 건 수
+
+
+
+#
+SELECT COUNT(*) TOTAL_CNT, MIN(SALARY) MIN_SALARY, MAX(SALARY) MAN_SALARY
+FROM EMPLOYEES;
+
+
+
+# GROUP BY와 집계함수 함께 사용
+
+SELECT JOB_ID,
+       COUNT(*) TOTAL_CNT,
+       MIN(SALARY) MIN_SALARY,
+       MAX(SALARY) MAX_SALARY
+FROM EMPLOYEES
+GROUP BY JOB_ID
+ORDER BY JOB_ID;
+
+
+
+# GROUP BY와 집계함수 함께 사용
+
+SELECT TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR,
+       DEPARTMENT_ID,
+       COUNT(*), SUM(SALARY), AVG(SALARY)
+FROM EMPLOYEES
+GROUP BY TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR, DEPARTMENT_ID
+ORDER BY 1, 2;
+
+
+
+SELECT TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR,
+       DEPARTMENT_ID,
+       COUNT(*), SUM(SALARY), AVG(SALARY)
+FROM EMPLOYEES
+WHERE TO_CHAR(HIRE_DATE, 'YYYY') >= '2004'
+GROUP BY TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR, DEPARTMENT_ID
+ORDER BY 1, 2;
+
+
+SELECT TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR,
+       DEPARTMENT_ID,
+       COUNT(*), SUM(SALARY), ROUND(AVG(SALARY), 0)
+FROM EMPLOYEES
+WHERE TO_CHAR(HIRE_DATE, 'YYYY') >= '2004'
+GROUP BY TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR, DEPARTMENT_ID
+ORDER BY 1, 2;
+
+
+
+SELECT TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR,
+       DEPARTMENT_ID,
+       COUNT(*), SUM(SALARY), ROUND(AVG(SALARY), 0)
+FROM EMPLOYEES
+GROUP BY TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR, DEPARTMENT_ID
+HAVING ROUND(AVG(SALARY), 0) >= 5000
+ORDER BY 1, 2;
+
+*집계 함수 반환 값에 대한 조건을 걸 때는 WHERE 대신 HAVING  사용!! (GROUP절 뒤에!!)
+
+
+
+
+#DISTINCT
+-DISTINCT 뒤에 명시한 컬럼의 고유한 값만 조회
+-집계 함수 없이 GROUP BY 절을 사용한 것과 동일한 효과
+
+SELECT DISTINCT TO_CHAR(HIRE_DATE, 'YYYY') HIRE_YEAR, DEPARTMENT_ID
+FROM EMPLOYEES
+ORDER BY 1, 2;
+
+
+
+#ROLLUP과 CUBE (거의 안 씀)
+
+-ROLLUP : 소계(Sub Total)
+-CUBE : 모든 가능한 조합에 대한 소계
+
+
+SELECT SUBSTR(PHONE_NUMBER, 1, 3),
+       JOB_ID,
+       SUM(SALARY)
+FROM EMPLOYEES
+GROUP BY 
+  CUBE(SUBSTR(PHONE_NUMBER, 1, 3), JOB_ID)
+ORDER BY 1, 2;
+
+
+SELECT SUBSTR(PHONE_NUMBER, 1, 3),
+       JOB_ID,
+       SUM(SALARY)
+FROM EMPLOYEES
+GROUP BY 
+  ROLLUP(SUBSTR(PHONE_NUMBER, 1, 3), JOB_ID)
+ORDER BY 1, 2;
+
+
+
+
+#집합 쿼리
+-집합 연사자를 사용한 쿼리
+-수학에서 배운 집합 개념(합집합, 교집합 등)
+-하나의 SELECT 문장이 반환한 결과를 한 집합으로 보고, 한 개 이상의 SELECT 문장이 집합 연산자로 연결된 형태
+-여러 개의 SELECT 문이 연결되어 최종적으로는 하나의 결과 집합이 만들어짐
+
+<제한 사항>
+-각 SELECT절의 컬럼 수, 데이터 타입은 동일하게
+-최종 반환되는 컬럼명은 맨 첫 SELECT 절의 컬럼 이름을 따름
+-ORDER BY 절은 맨 마지막 SELECT 문자에서만 붙일 수 있음 (기준은 맨 처음 SELECT문 기준)
+
+
+#집합 연산자
+-집합 쿼리는 집합 연산자를 사용해 SELECT 문장을 연결하는 형태
+-UNION, UNION ALL, INTERSECT, MINUS
+
+
+-UNION      : 두 집합의 모든 원소를 가져오는 합집합 개념
+              각 결과 집합에서 조회된 중복 값은 1번만 조회됨
+
+-UNION ALL  : UNION과 동일하나 중복 값도 모두 조회됨
+-INTERSECT  : 교집합 개념
+-MINUS      : 차집합 개념
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
