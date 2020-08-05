@@ -1,0 +1,284 @@
+2020-06-16
+
+SQL 3강
+
+#함수(Function)란?
+-수학에서 사용하는 y = f(x)와 개념이 동일
+-자주 사용되는 연산(계산)을 정의해 놓은 데이터베이스 객체 --> 재사용 목적
+-절대값 처리 : 양수는 양수 그대로, 0은 0, 음수는 양수로 반환
+            CASE WHEN value1 > 0 THEN value1
+                 WHEN value1 = 0 THEN 0
+                 ELSE value1 * -1
+            END
+-매번 절대값을 구할 때 이 로직을 직접 구현하는 것은 비효율적이기 때문에 함수로 구현해 놓고 이 함수를 호출하는 것이 바람직하다.
+
+-오라클에서는 기본적으로 연산에 대해 다양하고 많은 함수를 제공하고 있음(빌트인 함수)
+-함수로 특정 로직(연산)을 처리한 결과 값을 반환함
+-연산 대상과 반환 값의 데이터 유형에 따라 크게 문자형, 숫자형, 날짜형 함수로 구분 (이외의 함수는 잘 사용하지 않음)
+
+
+#숫자형 함수
+-매개변수, 즉 피연산자와 연산 결과가 모두 숫자인 함수
+-수학에서 사용하는 함수와 동일
+
+1) 숫자형 함수
+
+*자주 쓰이는 함수*
+ABS(n) : n의 절대값 
+MOD(n2, n1) : n2를 n1로 나눈 나머지
+ROUND(n, i) : n의 소수점의 i번째 자리까지 반올림해서 나타내준 값 (반올림)
+TRUNC(n1, n2) : n1의 소수점의 n2자리까지만 나타냄 (버림)
+
+*참고*
+-CEIL(n) : n과 같거나 큰 최소 정수 
+-FLOOR(n) : n과 같거나 작은 최대의 정수 
+ex) SELECT CEIL(5.5)
+    FROM DUAL;
+    --->6
+    SELECT FLOOR(5.5)
+    FROM DUAL;
+    --->5
+-EXP(n) : e의 n승       (e^n)
+-LN(n)  : n의 자연로그 값 (logen)
+-LOG(n2, n1) : n2는 밑, n1은 진수
+ex) SELECT LOG(10, 1000)
+    FROM DUAL;
+    ---> 3
+-POWER(n2, n1) : n2의 n1승 
+-SIGN(n) : n이 양수면 1, 음수면 -1, 0이면 0
+-SQRT(n) : n의 제곱근 (루트 n)
+
+
+2)문자형 함수
+-매개변수, 즉 피연산자가 문자형인 함수, 반환 결과는 문자형 혹은 숫자형
+
+*자주 쓰이는 함수*
+LOWER(chr) : chr을 소문자로 변환
+UPPER(chr) : chr을 대문자로 변환
+SUBSTR(chr, n1, n2) : chr에서 n1에서 시작해서 n2만큼 잘라낸 결과
+                      ->n1을 0으로 명시하면 1이 적용
+                      ->n1이 음수면 chr 오른쪽 끝에서부터 거꾸로 세어 가져옴
+                      ->n2를 생략하면 n1부터 끝까지
+ex) SELECT SUBSTR('ABCDEFG', 3, 2) 
+    FROM DUAL;
+    ---> CD
+TRIM(chr) : chr의 양쪽 끝 공백을 제거한 결과
+LENGTH(chr) : chr문자의 글자 수
+REPLACE(chr, serch_str, rep_str) : chr에서 serch_str을 찾아 rep_str로 대체
+ex) SELECT REPLACE('ABC', 'B', 'D')
+    FROM DUAL;
+    ---> ADC
+INSTR(chr1, chr2, n1, n2) : chr1에서 chr2문자를 찾아 그 시작 위치 반환
+                            ->n1은 chr1에서 몇 번 째 문자부터 찾을 것인지(생략시 1)
+                            ->n2는 chr1에서 chr2문자를 찾을 때 일치하는 문자의 몇 번째 위치를 반환시킬지(생략시 1)
+ex) SELECT INSTR('ABABAB', 'A', 2)
+    FROM DUAL;
+    --->두 번째 글자인 'B'부터 첫 번째로 나타나는 'A'를 찾아야 하므로 3번째 자리에 있는 A
+        따라서, 3
+
+*참고*
+CONCAT(chr1, chr2)    : chr1과 chr2 문자를 결합한 결과(||연산자와 같은 기능)
+INITCAP(chr)          : chr의 첫 번째 문자를 대문자로 변환
+LPAD(expr1, n, expr2) : expr1을 반환하는데, expr2를 (n-expr1길이)만큼 왼쪽을 채워서 반환
+                        ex) SELECT LPAD('SQL', 5, '*')
+                            FROM DUAL;
+                            --->**SQL
+RPAD(expr1, n, expr2) : expr1을 반환하는데, expr2를 (n-expr1길이)만큼 오른쪽을 채워서 반환
+                        ex) SELECT RPAD('SQL', 5, '*')
+                            FROM DUAL;
+                            --->SQL**
+LTRIM(expr1, expr2)   : expr1의 왼쪽에서 expr2를 제거한 결과
+                        ex) SELECT LTRIM('**SQL**', '*')
+                            FROM DUAL;
+                            --->SQL**
+RTRIM(expr1, expr2)   : expr1의 오른쪽에서 expr2를 제거한 결과
+                        ex) SELECT RTRIM('**SQL**', '*')
+                            FROM DUAL;
+                            --->**SQL
+ASCII(chr)            : chr문자의 ASCII 코드 값을 반환                       
+LENGTHB(chr)          : chr문자의 바이트수 (영어 알파벳 하나는 1byte, 한글 한 글자는 3byte)
+
+
+3)날짜형 함수
+-날짜, 즉 데이터 형이 DATE나 TIMESSTAMP인 데이터를 대상으로 연산을 수행하는 함수
+
+*자주 쓰이는 함수*
+
+SYSDATE              : 현재 일자와 시간을 반환(오라클 설치된 서버시간)
+ADD_MONTHS(date, n)  : date 날짜에 n개월을 더한 날짜
+
+*참고*
+
+MONTHS_BETWEEN(date1, date2)  : date1와 date2 두 날짜 사이의 개월 수
+LAST_DAY(date)                : date가 속한 월의 마지막 일자
+NEXT_DAY(date, expr)          : date 날짜를 기준으로 expr에 명시한 날짜
+                                (expr은 '월요일' 또는 '1~7'형태로 쓸 수 있다.-1 = 일요일, 7 = 토요일)
+ROUND(date, format)           : date를 format 기준으로 반올림한 날짜
+                                ex) SELECT ROUND(SYSDATE, 'YEAR')
+                                    FROM DUAL;
+                                    --->2020-01-01 00:00:00
+TRUNC(date, format)           : date를 format 기준으로 잘라낸 날짜 
+                                ex) SELECT TRUNC(SYSDATE, 'YEAR')
+                                    FROM DUAL;
+                                    --->2019-01-01 10:10:10
+
+#형변환 함수
+-문자, 숫자, 날짜형 데이터 각각을 다른 데이터 형으로 변환
+-문자형 <-> 숫자형 (ex. '123' <-> 123)
+-문자형 <-> 날짜형 (ex. '2019-01-01' <-> 2019-01-01)
+*형변환은 묵시적 형변환과 명시적 형변환이 있음
+
+1) 묵시적(Implicit) 형변환 : 오라클이 자동으로 형변환
+
+SELECT *
+FROM EMPLOYEES
+WHERE HIRE_DATE = '2003-06-17';
+
+*숫자형 문자와 숫자 비교 시, 문자를 숫자로 변환
+*날짜형 문자와 숫자 비교 시, 문자를 날짜로 변환
+
+2) 명시적 형변환 : 형변환 함수를 사용해 사용자가 직접 형변환 
+
+가급적 명시적 형변환을 해야함
+-가독성이 좋음
+-묵시적 형변환은 성능 상 좋지 않음
+-묵시적 형변환은 가끔 원치 않는 형태의 값을 반환
+-오라클 버전에 따라 묵시적 형변환 내부 알고리즘이 달라질 가능성
+
+#형변환 함수
+-TO_NUMBER(char) : char를 숫자로 변환
+ 
+ SELECT
+ TO_NUMBER('123')
+ FROM DUAL;
+ ---> 123
+
+ -TO_CHAR(n, number_format)  : 숫자인 n을 number format에 맞게 문자로 변환(number_format은 생략 가능)
+
+ SELECT 
+ TO_CHAR(12345, '99,999')
+ FROM DUAL;
+ --->'12,345'
+
+ -TO_CHAR(date, date_format) : 날짜인 date를 date_format에 맞게 문자로 변환(date_format은 생략 가능)
+
+ SELECT
+ TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS')
+ FROM DUAL;
+ --->'2020-06-16 10:52:29'
+
+ -TO_DATE(char, date_format) : 문자 char을 date_format에 맞게 날짜로 변환(date_format은 생략 가능)
+
+ SELECT
+ TO_DATE('2020-06-16 23:53:01', 'YYYY-MM-DD HH24:MI:SS')
+ FROM DUAL;
+
+
+ #숫자 변환 형식(number_format)
+
+ - ,(콤마)    TO_CHAR(12345, '99,999')
+ - .(소수점)  TO_CHAR(12345.4, '99,999.5')
+ - 9        한 자리 숫자를 나타낼 때, 실제 숫자 자리수와 같거나 크게 명시해야함
+
+ #날짜 변환 형식
+
+ -YYYY, YYY, YY, Y   : 연도 표시
+
+ -MONTH, MON  : 월 표시 (6월)
+
+ -MM  :  월을 01, 02, 03 ... 형태로 표현  (06)
+
+ -D   :  주중 일자를 1~7까지 숫자로 표현(1 : 일요일, 7 : 토요일)
+
+ -DAY :  주중 일자를 요일로 표현
+
+ -DD  :  일을 01, 02, 03 ... 형태로 표현   (01 ... 31)
+
+ -DDD :  일을 001, 002, 003 ... 형태로 표현 (001 ... 365)
+
+ -DL  :  일을 요일까지 표현   TO_CHAR(SYSDATE, 'DL') ---> 2020년 06월 16일 월요일
+
+ -HH, HH12 : 시간을 01, 02, ... 12 형태로 표현
+
+ -HH24  : 시간을 24시간 단위로 표현
+
+ -MI  :  분을 01, 02 ... 59 형태로 표현
+
+ -SS  :  초를 01, 02, ...59 형태로 표현
+
+ -WW  :  주를 01, 02, ...53 형태로 표현 (해당 연도에서 몇 주차인지)
+
+ -W   :  주를 해당 월에서 몇 주차인지
+
+ 
+
+ # Null 값 처리를 위한 함수
+
+-NVL(expr1, expr2)           : expr1 값이 Null이면 expr2를 반환
+
+-NVL2(expr1, expr2, expr3)   : expr1 값이 Null이면 expr3을, Null이면 expr2를 반환
+
+-COALESCE(expr1, expr2, ...) : expr1, expr2, expr3, ... 에서 첫 번째로 Null이 아닌 값 반환
+
+-NULLIF(expr1, expr2)        : expr1과 expr2 값이 같으면 Null을, 같지 않으면 expr1을 반환
+
+
+# 기타 함수
+
+-DECODE(expr, val1, result1, val2, result2, val3, result3, ... dafault_value)
+
+ : 오라클에만 있는 함수, 요즘은 CASE 함수가 있어서 잘 사용하지 않는다.
+   간결한 점은 좋은데 가독성이 떨어짐
+
+ : expr이 val1이면 result1, val2이면 result2를 반환
+
+ : 일치하는 값이 없으면 default_value (default_value 생략하면 Null 반환)
+
+ : 단순형 CASE 표현식과 동작 방식 동일
+
+
+-집계 함수
+ : SUM, MAX, MIN, AVG 등  + 분석 함수
+
+ : 사용자 정의 함수
+
+
+
+#사용자 정의 함수 및 기타
+
+-사용자 정의 함수 : 직접 만들어 사용
+                PL/SQL을 사용해 개발
+ 
+-PL/SQL  : 프로그래밍 언어의 특성을 수용한 SQL 확장판
+           SQL은 물론 프로그래밍에 필요한 조건문(IF), 반복문(LOOP, FOR, WHILE) 추가
+           PL/SQL은 본 강의에서 다루지 않음
+
+
+
+
+
+
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
