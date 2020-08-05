@@ -1,0 +1,138 @@
+2020-06-08
+
+SQL 1강
+
+<RDBMS, 오라클>
+
+#데이터(data)란?
+-현실세계에 있는 가공되지 않은 단순한 형태의 사실(fact), 값
+-의미 있는 정보(information)가 되기 위해 임의의 처리(process) 과정 필요
+
+데이터베이스(database)는 데이터를 체계적으로 모아 놓은 논리적인 집합이고,
+DBMS는 데이터베이스를 관리하는 시스템 (database management system)
+
+-> Relational(관계형) DBMS인 RDBMS를 사용
+
+#RDBMS의 특징
+-데이터 중복 최소화
+-데이터 무결성(integrity).     >>데이터의 품질 보장(잘못된 형태의 데이터는 입력 자체가 거부됨)
+-트랜잭션(transaction) 처리.   >>오류가 났을 경우에는 거래 자체가 없었던 것으로 처리
+-SQL을 이용한 손 쉬운 데이터 처리
+-데이터 보안성 강화             >>사용자 별 권한 관리를 통해 데이터 조회, 저장, 수정, 삭제 가능
+
+#오라클 18c Express Edition 설치
+
+#오라클 18c Express의 구조
+-CDB와 PDB(XEPDB1)
+
+사용자(user) : 오라클에 접속해 DB를 사용하는 계정
+             "CREATE USER 사용자명 IDENTIFIED BY 패스워드" 로 실행
+스키마(Schema) : 사용자와 해당 사용자 소유의 데이터베이스 객체들의 집합 (사용자와 스키마의 이름이 같음)
+
+-SYS와 SYSTEM
+ : SYS와 SYSTEM 계정 모두 자신의 스키마가 있음
+
+-권한(privilege)와 롤(role)
+ 권한 : DB 상에서 특정 작업을 할 수 있는 권한, 2가지 범주로 나눔
+  1) 시스템 권한 : 특정 작업을 할 수 있는 권한 >> 관리자가 특정 사용자에게 해당 권한을 할당
+  2) 객체 권한 : 테이블, 뷰 등 DB 객체를 대상으로 작업할 수 있는 권한 >> 객체 소유자가 다른 사용자에게 자신의 객체 참조 권한 할당
+ 롤 : 오라클에서 제공하는 권한은 수 백개인데 이들중 비슷한 권한들을 묶어 놓은 것
+     롤을 사용자에게 할당하면, 해당 롤에 있는 모든 권한을 가짐
+     DBA 롤 : 시스템 권한들을 모아 놓은 롤
+
+시스템 권한 부여 방법 : GRANT 권한명[롤명] TO 사용자 
+ex) GRANT CREATE USER, CREATE SESSION TO user1
+--> user1 사용자에게 두 개의 권한 할당, 그러면 user1은 db에 접속 가능하며 다른 사용자 생성이 가능해짐
+
+ex) GRANT DBA1 TO user1
+--> user1은 시스템 관리자 권한을 획득
+
+부여된 권한이나 롤 회수 : REVOKE 권한명[롤명] FROM 사용자
+
+객체 권한 부여 방법 : GRANT select on table 1 TO user2
+--> user2는 user1이 만든 table1 테이블을 조회할 수 있음
+
+#SQL*Plus와 SQL Developer
+-SQL*Plus : 결과 보기가 불편하기 때문에 잘 사용하지 않음
+-SQL Developer : SQL문을 실행하고 그 결과를 확인할 수 있는 GUI(Graphic User Interface) 기반 툴
+(기타 툴 : Toad, 오렌지, PL/SQL Developer)
+
+#SQL Developer 설치 & 기본 환경 구성
+
+http://www.oracle.com/tools/downloads/sqldev-v192-downloads.html 접속 -> Windows 64-bit with JDK 8 included 버전 다운로드 -> 압출 풀어 사용 가능 -> sqldeveloper.exe 파일 실행
+
+1) CDB 연결
+2) PDB 연결
+3) 권한 부여
+4) HR 사용자 PDB 로그인
+.....프린트물 참고!
+
+@ password를 몇 번 틀려서 계정이 잠겼을 때 : ALTER USER orauser indentified by 비밀번호 account unlock;
+
+#테이블이란?
+-RDBMS에서 데이터를 저장하는 2차원 형태의 데이터베이스 객체
+-데이터를 가장 파악하기 쉬운 구조인 표 형태 (액섹의 시트)
+-로우(행)과 열(칼럼)으로 구성
+-다양한 유형의 속성(칼럼)들을 가진 데이터들의 집합(로우)
+
+#구조 
+-컬럼 : 데이터의 속성을 나타냄
+-로우 : 테이블의 전체 컬럼이 하나의 로우를 구성
+-로우는 개체의 속성, 정보를 나타냄 
+
+#생성
+-테이블 생성(정의)는 로우가 아닌 컬럼에 대한 정의
+-한 테이블에는 1000개까지 컬럼 생성 가능
+-CREATE TABLE 권한을 부여 받아야 테이블 생성 가능
+
+#유형
+1) 문자형 데이터 
+   CHAR (n) 과 VARCHAR2 (n) <- 주로 사용
+   ex) VARCHAR2 (12)      => 영문 12자, 한글 4자
+       VARCHAR2 (12 CHAR) => 영문 12자, 한글 12자 가능
+2) 숫자형 데이터 
+   NUMBER (p, s) - 22byte 크기의 가변길이 숫자형
+   p(precision) - 전체 자리 수
+   s(scale) - 소수점 이하 자리 수 
+   --> p, s 생략시 38 적용됨
+ 3) 날짜형 데이터
+    DATE형 - 7byte 크기로 날짜와 시간 데이터 저장(년, 월, 일, 시, 분, 초까지 저장) -주로 사용
+    TIMESTAMP형 - DATE형의 확장, 11byte 크기(초를 소수점 이하 9자리까지 정밀도로 데이터 저장)
+
+#각종 제약 조건
+-데이터 무결성을 보장하기 위한 오라클 데이터베이스에서 제공하는 객체
+-테이블 정의 시, 컬럼에 대한 제약 조건을 거는 형태로 무결성 확보
+-NOT NULL, 기본 키, Default, Check 등
+
+*NOT NULL
+ -NULL은 데이터가 없음을 의미, 공백(스페이스)이 아닌 데이터 자체가 들어가지 않는 것
+ -컬럼 정의 시 아무 것도 명시하지 않으면 NULL 허용 컬럼이 됨
+ -컬럼 정의 시 NOT NULL 명시 (반드시 해당 컬럼에 데이터가 들어가야함, 그렇지 않으면 데이터 입력 시 오류 발생)
+
+*기본 키(primary key)
+-테이블에서 로우 1개를 유일하게 식별할 수 있는 값이 들어가는 컬럼(사번이나 주민번호 같은)
+-가장 큰 특징은 중복값이 없다는 것
+-테이블 하나 당 기본키는 한 개만 생성 가능
+
+*Default
+-테이블의 특정 컬럼에 들어갈 기본 값을 정의 (날짜나 숫자)
+ex) UPDATE_DATE DATE DEFAULT SYSDATE --> UPDATE_DATE란 컬럼은 DATE형으로 이 컬럼에 값을 넣지 않으면 오라클이 자동으로 현재 일자와 시간(SYSDATE)을 입력해 줌
+    select sysdate from duals ;   --> 현재 시간 나옴
+
+*Check
+-입력되는 값을 체크, 사전에 설정된 값만 입력 가능
+ex) GENDER VARCHAR2 (1) CHECK (GENDER IN ('M', 'F')) --> GENDER란 컬럼은 VARCHAR2 1byte 형으로 이 컬럼에는 'M'이나 'F'값만 입력 가능, 다른 값을 입력할 때는 오류
+
+
+
+
+
+
+
+
+
+
+
+
+
+
