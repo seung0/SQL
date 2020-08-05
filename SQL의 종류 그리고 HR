@@ -1,0 +1,302 @@
+2020-06-10
+
+SQL(oracle-11g) 2강
+
+#SQL이란?
+-Structured Query Language의 약자, 구조화된(구조적인) 질의 언어
+-RDBMS와 데이터 처리를 위해 소통하는 언어
+-데이터베이스에 있는 데이터를 관리하는데 사용하는 언어
+-집합적 언어 (C, JAVA, PHTHON같은 다른 프로그래밍 언어는 절차적 언어)
+-SQL 표준이 존재 ---> 사실 별 의미 없다. 딥하게 들어가면 어쩌피 다 다름
+
+#SQL의 특징
+-영어를 기반으로 배우고 사용하기 쉽다.
+-데이터 처리(입력, 삭제, 수정)뿐만 아니라 데이터베이스 객체(테이블, 뷰) 생성, 수정 시 사용
+-특정 조건에 맞는 데이터를 한 번에 처리 (집합적 언어)
+-SQL 문장과 데이터베이스 객체명은 대소문자 구분을 안하지만, 테이블에 있는 데이터 값은 대소문자 구분한다.(oracle만)
+-주석 : 한 줄 주석 --
+       여러 줄 주석 /* */
+
+#SQL의 종류
+-DDL : 데이터 정의어
+-DML : 데이터 조작어
+-TCL : 트랜잭션 제어어
+-DCL : 데이터 제어어
+
+*DDL(Data Definition Language, 데이터 정의어)
+데이터베이스 객체(테이블, 뷰, 인덱스 등)를 생성, 수정, 삭제
+CREATE, DROP, ALTER, TRUNCATE TABLE, RENAME
+
+*DML(Data Manupulation Language, 데이터 조작어)
+데이터를 조회, 입력, 수정, 삭제
+SELECT, INSERT, UPDATE, DELETE, MERGE
+
+*TCL(Transaction Control Language, 트랜잭션 제어어)
+트랜잭션 처리 --> 데이터 변경 작업 발생 시
+COMMIT, ROLLBACK
+
+*DCL(Data Control Language, 데이터 제어어)
+권한을 할당하거나 회수
+GRANT, REVOKE
+
+**TRUNCATE TABLE과 DELETE 모두 테이블에 있는 데이터를 삭제하는 명령어인데,
+  TRUNCATE TABLE은 DDL로 삭제 후 ROLLBACK으로 원복할 수 없고, 해당 테이블 데이터 전체를 삭제하는 반면
+  DELETE는 DML로 ROLLBACK으로 삭제 이전 상태로 원복 가능하고, 특정 조건에 맞는 데이터만 삭제 가능하다.(WHERE절)
+
+  --> DELETE하는 건 시간이 오래 걸리기 때문에 빠른 시간 내 삭제하거나 대량 작업 시에는 TRUNCATE TABLE로 삭제
+
+#테이블 생성
+CREATE TABLE 테이블명 
+
+CREATE TABLE EMP1 ( 
+     EMP_NO VARCHAR2(30) NOT NULL,
+     EMP_NAME VARCHAR2(80) NOT NULL,
+     SALARY NUMBER NULL,
+     HIRE_DATE DATE NULL);
+
+desc emp1;
+
+*NULL 허용 컬럼일 경우에는 따로 명시하지 않아도 된다.
+
+#테이블 수정
+ALTER TABLE 테이블명
+
+-컬럼 길이를 100BYTE로 수정
+ALTER TABLE EMP1 
+MODIFY EMP_NAME VARCHAR2(100);
+
+-EMP_NAME2 컬럼 추가
+ALTER TABLE EMP1
+ADD EMP_NAME2 VARCHAR2(80);
+
+-EMP_NAME2 컬럼명을 EMP_NAME3로 변경
+ALTER TABLE EMP1
+RENAME COLUMN EMP_NAME2 
+       TO EMP_NAME3;
+
+-EMP_NAME3 컬럼 삭제
+ALTER TABLE EMP1
+DROP COLUMN EMP_NAME3;
+
+#테이블 삭제
+DROP TABLE EMP1;
+
+#기본키 생성
+1. 테이블 생성 시 생성
+CREATE TABLE EMP1 (
+      EMP_NO VARCHAR2(30) PRIMARY KEY,
+      EMP_NAME VARCHAR2(80) NOT NULL,
+      SALARY NUMBER NULL,
+      HIRE_DATE DATE NULL
+      );
+2. CREATE TABLE EMP1 (
+      EMP_NO VARCHAR2(30),
+      EMP_NAME VARCHAR2(80) NOT NULL,
+      SALARY NUMBER NULL,
+      HIRE_DATE DATE NULL
+      PRIMARY KEY(EMP_NO)
+      );
+ 3. ALTER TABLE 구문 이용
+    CREATE TABLE EMP1 (
+      EMP_NO VARCHAR2(30),
+      EMP_NAME VARCHAR2(80) NOT NULL,
+      SALARY NUMBER NULL,
+      HIRE_DATE DATE NULL
+      );
+      
+      ALTER TABLE EMP1
+      ADD CONSTRAINTS EMP3_PK PRIMARY KEY(EMP_NO);
+
+**1, 2번은 처음에 한 번 설정하면 PRIMARY KEY가 이미 설정되어 있다고 뜨며 이름 바꾸기가 불가능하지만
+  3번은 표를 생성하는 코드를 따로 적어놓고 이후에 ALTER를 이용해서 기본키로 설정하고 싶은 컬럼과 이름을 바꾸어줄 수 있다. 
+
+**기본키가 설정되었는지 확인하는 방법은 왼쪽 상단에 테이블에서 저장한 테이블명을 찾아 '제약조건'에서 확인 가능하다.
+
+#select문(HR계정 이용)
+-가장 대표적인 DML 문장으로 테이블에 저장된 데이터를 원하는 조건과 형태로 조회
+-SQL중 가장 기본이며 가장 많이 사용하는 문장
+-WHERE절을 사용해 특정 조건에 맞는 데이터만 선별해 조회 가능
+-ORDER BY절을 사용해 데이터를 정렬해 조회
+*HR 스키마 ERD(Entity Relationship Diagram)에서 ERD란 테이블 간 설계도인데 테이블 설계를 '모델링'이라고 한다.
+ -->우리는 잘 안씀
+
+기본 구문 :  SELECT 컬럼(전체 컬럼 조회 시 *)
+           FROM 테이블명(테이블명 2개 이상 명시할 때는 콤마,로 구분)
+           WHERE 조건
+           ORDER BY 정렬순서;
+
+#HR(Human Resource)소유의 테이블
+EMPLOYEES, DEPARTMENTS, LOCATIONS, COUNTRIES, REGIONS, JOBS, JOB_HISTORY
+
+#EMPLOYEES 테이블 데이터 전체 조회
+ 
+ SELECT *
+ FROM EMPLOYEES;
+
+ #WHERE절 (특정 조건)
+ -테이블에 있는 특정 데이터(로우)를 걸러내기 위한 조건을 기술(필터 역할)
+ -1개 이상 조건 명시 가능
+ -조건의 연산 결과가 참(TRUE)인 건을 조회
+ -1개 이상 조건은 AND나 OR로 조건들을 연결
+
+ #사번이 100번인 사원 조회
+
+ SELECT *
+ FROM EMPLOYEES
+ WHERE EMPLOYEE_ID = 100;
+
+ #사번이 100번이 아닌 사원 조회
+
+ SELECT *
+ FROM EMPLOYEES
+ WHERE EMPLOYEE_ID != 100;
+
+ #사번이 100보다 크고 JOB_ID가 ST_CLERK인 사원 조회 (이 때 주의할 점은 ST_CLERK은 대소문자 구분 못함)
+
+ SELECT *
+ FROM EMPLOYEES
+ WHERE EMPLOYEE_ID > 100
+ AND JOB_ID = 'ST_CLERK';
+
+ #급여가 5000 이상인 사원 조회
+
+SELECT *
+FROM EMPLOYEES
+WHERE SALARY >= 5000;
+
+#ORDER BY절
+-SELECT문과 함께 사용해 데이터를 정렬해 조회
+
+오름차순 정렬 : ASC, 생략 가능 
+내림차순 정렬 : DESC
+**컬럼명이 아닌 SELECT절에 기술한 컬럼순서(number)로 명시 가능
+
+#사번 순으로 정렬
+
+SELECT *
+FROM EMPLOYEES
+ORDER BY EMPLOYEE_ID;
+
+또는
+
+SELECT *
+FROM EMPLOYEES
+ORDER BY 1;
+
+도 가능!
+
+#사번으로 내림차순 정렬
+
+SELECT *
+FROM EMPLOYEES
+ORDER BY EMPLOYEE_ID DESC;
+
+#이름, 성 순으로 오름차순 정렬
+
+SELECT *
+FROM EMPLOYEES
+ORDER BY FIRST_NAME, LAST_NAME;
+
+#이름은 오름차순, 성은 내림차순으로 정렬
+
+SELECT *
+FROM EMPLOYEES
+ORDER BY FIRST_NAME, LAST_NAME DESC;
+
+
+#사원의 사번과 이름, 급여를 급여가 5000 이상인 급여가 높은 순서로 보고 싶다.
+
+SELECT EMPLOYEE_ID, FIRST_NAME, LAST_NAME, SALARY
+FROM EMPLOYEES
+WHERE SALARY >= 5000
+ORDER DY SALARY DESC;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
