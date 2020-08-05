@@ -1,0 +1,490 @@
+2020-06-25
+
+SQL 6강
+
+#서브쿼리(Subquery)
+
+-일반적인 쿼리(메인, 주 쿼리) 안에 있는 또 다른 쿼리 -> 보조, 하위 쿼리
+-메인쿼리와 서브쿼리가 합쳐져 한 문장을 이룸
+-서브쿼리는 하나의 SELECT문장으로, 괄호로 둘러싸인 형태
+-메인쿼리 기준으로 여러 개의 서브 쿼리 사용 가능
+
+
+#서브쿼리 종류
+
+>서브쿼리 위치에 따라
+ -스칼라 서브쿼리(Scalar Subquery)
+ -인라인 뷰(Inline View)
+ -중첩 서브쿼리(Nested Subquery)
+
+>메인쿼리와의 연광성
+ -연관성 있는(Correlated) 서브쿼리 : 메인쿼리와 조인
+ -연관성 없는(Noncorrelated) 서브쿼리 : 메인쿼리와 독립적
+
+*주로 서브쿼리 위치에 따른 분류를 사용
+
+
+
+# 1) 스칼라 서브쿼리(Scalar Subquery)
+
+-메인쿼리의 SELECT절에 위치한 서브쿼리
+-SELECT절에서 마치 하나의 컬럼이나 표현식처럼 사용
+-스칼라(Scalar) : 크기만 가지는 값, 양을 의미(수학, 물리) -> 단일값
+-서브쿼리 수행 결과가 하나의 값이 되므로 스칼라 서브쿼리라고 함
+
+
+-서브쿼리가 최종 반환하는 로우 수는 1개
+-서브쿼리가 최종 반환하는 컬럼이나 표현식도 1개
+-서브쿼리에 별칭(Alias)을 주는 것이 일반적 -> 하나의 컬럼 역할이므로
+-서브쿼리 내에서 메인쿼리와 조인 가능
+ (조인하는 것이 일반적-조인하지 않으면 여러 건이 조회될 가능성이 높음)
+
+
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.department_id,
+       (select b.department_id
+       from departments b
+       where a.department_id = b.department_id) dept_name
+from employees a
+order by 1;
+
+
+조인으로 똑같은 결과를 반환할 수 있음
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.department_id,
+       b.department_id
+from employees a,
+     departments b
+where a.department_id = b.department_id
+order by 1;
+
+
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.job_id,
+       (select b.job_title||'('||b.job_id||')'
+        from jobs b
+        where a.job_id = b.job_id) jobs_names
+from employees a
+order by 1;
+
+
+조인
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.job_id,
+       b.job_title||'('||b.job_id||')' jobs_names
+from employees a,
+     jobs b
+where a.job_id = b.job_id
+order by 1;
+
+
+
+
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.department_id,
+       (select b.department_name
+        from departments b
+        where a.department_id = b.department_id) dept_name,
+       (select d.country_name
+        from departments b,
+             locations c,
+             countries d
+        where a.department_id = b.department_id
+          and b.location_id = c.location_id
+          and c.country_id = d.country_id) country_name
+from employees a
+order by 1;
+
+
+**다른 테이블에 있는 값을 가져올 때 사용 가능한 방법
+-스칼라 서브쿼리
+-조인(외부조인)
+-사용자 정의 함수
+
+-->스칼라 서브쿼리나 사용자 정의 함수는 가급적 사용 자제 (성능상 좋지 않음)
+
+
+
+# 2) 인라인 뷰(Inline View)
+
+-메인쿼리의 FROM절에 위치
+-서브쿼리 자체가 마치 하나의 테이블처럼 동작
+-서브쿼리가 최종 반환하는 로우와 컬럼, 표현식 수는 1개 이상 가능
+-서브쿼리에 대한 별칭(Alias)은 반드시 명시
+-메인쿼리와 조인조건은 메인쿼리의 WHERE절에서 처리가 일반적
+
+*인라인뷰가 필요한 이유
+-기존 단일 테이블만 읽어서는 필요한 정보를 가져오기가 어려울 때
+ (ex. 특정 조건으로 집계한 결과와 조인 필요시)
+-인라인 뷰의 쿼리가 여러 테이블을 조인해 읽어오는 경우가 많음
+-복잡한 쿼리의 경우, 쿼리 작성을 좀 더 직관적으로 사용하기 위해
+
+
+*LATERAL 키워드 사용시 서브쿼리 내에서 조인 가능 -> 스칼라 서브쿼리처럼 동작
+ -12c부터 추가된 기능
+ (과거에는 서브쿼리 내에서 메인쿼리 참고가 불가능했음)
+
+ 
+
+ >
+ select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.department_id,
+       c.dept_name
+from employees a,
+    (select b.department_id,
+            b.department_name dept_name
+     from departments b) c
+where a.department_id = c.department_id
+order by 1;
+-->WHERE조건절은 서브쿼리 밖에서 실행!
+
+
+
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.department_id,
+       c.dept_name
+from employees a,
+     lateral
+    (select b.department_id,
+            b.department_name dept_name
+     from departments b
+     where a.department_id = b.department_id) c
+order by 1;
+-->12c 버전부터 lateral 함수를 사용해서 서브쿼리 안에서 조건절을 실행할 수 있음
+
+
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       dept.department_name,
+       loc.street_address,
+       loc.city,
+       loc.country_name
+from employees a,
+     (select *
+      from departments b)dept,
+      (select l.location_id,
+              l.street_address,
+              l.city,
+              c.country_name
+      from locations l,
+           countries c
+      where l.country_id = c.country_id)loc
+where a.department_id = dept.department_id
+and dept.location_id = loc.location_id
+order by 1;
+
+
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       dept_loc.department_name,
+       dept_loc.street_address,
+       dept_loc.city,
+       reg.country_name,
+       reg.region_name
+from employees a,
+     (select b.department_id, 
+             b.department_name,
+             l.street_address,
+             l.city,
+             l.country_id
+      from departments b,
+           locations l
+    where b.location_id = l.location_id)dept_loc,
+    (select c.country_id,
+            c.country_name,
+            r.region_name
+     from countries c,
+          regions r
+    where c.region_id = r.region_id)reg
+where a.department_id = dept_loc.department_id
+and dept_loc.country_id = reg.country_id
+order by 1;
+
+
+
+>
+select a.department_id,
+       a.employee_id,
+       a.last_name,
+       a.salary,
+       k.department_id second_dept_id,
+       k.avg_salary
+from employees a,
+    (select b.department_id, round(avg(b.salary), 2) avg_salary
+     from employees b
+     group by b.department_id) k
+where a.department_id = k.department_id
+order by 1;
+
+
+# 3) 중첩 서브쿼리(Nested Subquery)
+
+-메인쿼리의 WHERE절에 위치
+-서브쿼리가 조건절의 일부로 사용됨
+-서브쿼리 최종 반환 값과 메인쿼리 테이블의 특정 컬럼 값을 비교시 사용
+-서브쿼리가 최종 반환하는 로우와 컬럼, 표현식 수는 1개 이상 가능
+-조건절의 일부이므로 서브쿼리에 대한 별칭(Alias) 사용 불가
+-서브쿼리 내에서 메인쿼리와 조인 가능
+
+>
+select *
+from departments
+where department_id in (select department_id
+from employees);
+
+
+>
+select *
+from departments a
+where exists 
+(select 1
+ from employees b
+ where a.department_id = b.department_id);
+ 
+
+
+>
+ select *
+ from departments a
+ where exists (select 1
+               from employees b
+               where a.department_id = b.department_id
+               and b.salary > 10000);
+
+
+>               
+select employee_id,
+       first_name||' '||last_name emp_name,
+       job_id,
+       salary
+from employees
+where (job_id, salary) in (select job_id, min_salary 
+                           from jobs)
+order by 1;
+
+
+
+>
+select e.last_name,
+       e.employee_id,
+       e.salary + NVL(commission_pct, 0),
+       e.job_id,
+       d.department_id
+from employees e,
+     departments d
+where e.department_id = d.department_id
+and salary + NVL(commission_pct, 0) > (select salary + NVL(commission_pct, 0)
+                                       from employees
+                                       where last_name = 'Pataballa')
+order by last_name, employee_id;
+
+
+
+>
+select department_id,
+       employee_id,
+       last_name,
+       salary
+from employees 
+where salary > (select avg(salary)
+                 from employees)
+                 --where a.department_id = b.department_id)
+order by department_id;
+
+
+
+
+
+#세미조인(Semi Join)
+
+-두 번째 테이블에 있는 로우와 조건이 맞는 첫 번째 테이블의 로우 반환
+-메인쿼리와 중첩 서브쿼리를 사용할 때 사용하는 조인
+-WHERE절에서 IN, EXISTS 연산자를 사용
+
+
+in연산자
+>
+select *
+from departments 
+where department_id in 
+(select department_id
+from employees);
+
+
+exists연산자
+>
+select *
+from departments a
+where exists
+(select 1
+ from employees b
+ where a.department_id = b.department_id);
+
+
+
+
+#안티조인(Anti Join)
+
+-세미조인에서 NOT 연산자 사용하는 조인
+-서브쿼리와의 조인조건에 부합하지 않는 건을 조회
+-WHERE절에서 NOT IN, NOT EXISTS 연산자를 사용
+
+>
+select *
+from departments a
+where not exists 
+(select 1
+from employees b
+where a.department_id = b.department_id);
+
+
+>
+select a.employee_id,
+       a.first_name||' '||a.last_name 
+from employees a
+where a.employee_id not in
+(select employee_id
+ from job_history);
+
+
+> 
+select a.employee_id,
+       a.first_name||' '||a.last_name
+from employees a 
+where not exists
+(select 1
+from job_history b
+where a.employee_id = b.employee_id)
+order by 1;
+
+
+# With절  or CTE(Common Table Expression)
+
+-서브쿼리의 일종
+-WITH절(clause)이라고도 하고 CTE라고도 함
+-하나의 서브쿼리를 또 다른 서브쿼리에서 참조하여 재사용 가능한 구문
+-오라클 11g까지는 하나의 서브쿼리에서 다른 서브쿼리 참조를 못함(12c부터 LATERAL함수 사용 가능)
+ -->WITH절 사용하면 이전 버전에서도 가능하다.
+
+-WITH절은 내부적으로 TEMP 테이블 스페이스를 사용함
+ ->TEMP 테이블스페이스에 각 서브쿼리 결과를 담아두고 있음
+-TEMP 테이블스페이스는 정렬 용도로 사용
+-과도한 WITH절 사용 시, TEMP 테이블스페이스 공간을 점유해 성능에 좋지 않음
+-일반적인 경우에는 서브쿼리를 사용하고, 서브쿼리 사용이 수월하지 않은 경우 WITH절 사용
+
+with dept as (
+select department_id,
+       department_name dept_name
+from departments)
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name
+from employees a,
+     dept b
+where a.department_id = b.department_id
+order by 1;
+
+with dept_loc as (
+select a.department_id,
+       a.department_name dept_name,
+       b.location_id,
+       b.street_address,
+       b.city,
+       b.country_id
+from departments a,
+     locations b
+where a.location_id = b.location_id
+),
+cont as (
+select b.department_id,
+       b.dept_name,
+       b.street_address,
+       b.city,
+       a.country_name
+from countries a,
+     dept_loc b
+where a.country_id = b.country_id
+)
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       b.dept_name,
+       b.street_address,
+       b.country_name
+from employees a,
+     cont b
+where a.department_id = b.department_id
+order by 1;
+
+
+
+
+
+with emp_info as (
+select a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       b.department_id,
+       b.department_name dept_name,
+       c.street_address,
+       c.city,
+       d.country_name,
+       e.region_name
+from employees a,
+     departments b,
+     locations c,
+     countries d,
+     regions e
+where a.department_id = b.department_id
+and b.location_id = c.location_id
+and c.country_id = d.country_id
+and d.region_id = e.region_id
+)
+select *
+from emp_info
+order by 1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
