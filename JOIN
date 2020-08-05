@@ -1,0 +1,462 @@
+2020-06-23
+
+SQL 5강
+
+#조인(Join)
+
+-RDBMS 특징은 중복 데이터 저장 회피 목적으로 데이터 성격에 따라 테이블을 분리한 것인데 한 테이블만 읽어서는 필요한 정보가 부족할 때가 많다.
+ 이런 테이블 간 연결 작업을 조인(join)이라고 한다.
+
+-테이블 간 연결(조인)을 위해서는 연결고리 역할을 하는 컬럼이 필요하다.
+ 조인에 참여하는 테이블 간 같은 값을 가진 컬럼을 '조인 컬럼'이라고 한다.
+
+-각 테이블의 조인 컬럼명이 같을 필요는 없으나 동일하게 만드는 것이 좋다.
+
+-조인 컬럼은 한 개 이상으로 구성될 수 있고, 뷰(view)도 조인 가능
+
+-조인 방식에 따라 크게 내부 조인, 외부 조인으로 구분한다.
+
+
+#내부 조인(Inner Join)
+
+-가장 기본적인 조인 방식(대부분을 차지한다.)
+-조인 참여 테이블 간 조인 컬럼 값이 같은 건을 가져옴
+-WHERE절에서 각 테이블의 조인 컬럼과 연산자를 사용해 조건 명시->조인 조건
+-일반적으로 조인 조건에 동등 연산자)(=) 사용 ->조인 컬럼 값이 같은 건이 조회됨
+-조인 조건을 만족한 데이터만 조회됨
+
+
+>
+SELECT a.employee_id,
+       a.first_name,
+       a.department_id,
+       b.department_name
+FROM employees a,
+     departments b
+WHERE a.department_id = b.department_id
+ORDER BY a.department_id;
+
+
+-FROM절에 조인에 참여할 테이블 명시(콤마로 구분)
+-각 테이블에 Alias를 주는 것이 좋음
+-모든 컬럼은 테이블명, 컬럼명 혹은 테이블 alias명. 컬럼명 형태로 사용
+-WHERE절에서는 조인 조건과 일반 조건 함께 사용
+
+
+
+
+>
+SELECT a.employee_id,
+        a.first_name,
+        a.last_name,
+        b.department_id,
+        b.department_name
+FROM employees a, departments b
+WHERE a.department_id = b.department_id
+ORDER BY a.employee_id
+
+
+-->178번 사원이 빠져있음
+   employees table에서 178번 사원의 department_id가 null일 가능성
+
+
+>
+SELECT a.employee_id,
+        a.first_name,
+        a.last_name,
+        a.department_id
+FROM employees a
+WHERE a.department_id is null
+ORDER BY a.employee_id;
+
+-->NULL인 것 확인 가능
+   WHERE a.department_id = b.department_id 조건 불만족
+
+
+
+>
+SELECT a.employee_id, 
+       a.first_name||' '||a.last_name emp_names,
+       a.job_id,
+       b.job_id,
+       b.job_title
+FROM employees a,
+     jobs b
+WHERE a.job_id = b.job_id
+ORDER BY 1;
+
+
+
+#외부 조인(Outer Join)
+
+-조인 조건을 만족하는 것은 물로 만족하지 않는 데이터(로우)까지 포함해 조회
+-A, B 두 테이블 기준, 조인조건에 부함하지 않는 상대방 테이블 데이터도 조회됨
+ (조인조건에 (+)를 붙인다.)
+-조인조건을 만족하지 않는 a 테이블의 데이터까지 조회 시
+ ->WHERE a.department_id = b.department_id(+)
+-조인조건을 만족하지 않는 b 테이블의 데이터까지 조회 시
+ ->WHERE a.department_id(+)=b.department_id
+
+*오라클에만 있는 문법!
+
+
+>
+SELECT a.employee_id emp_id,
+       a.department_id a_dept_id,
+       b.department_id b_dept_id,
+       b.department_name dept_name
+FROM employees a, departments b
+WHERE a.department_id = b.department_id(+)
+ORDER BY a.department_id;
+
+
+
+-조인 컬럼이 여러 개일 경우, 조인조건에서 (+) 기호를 모두 붙여야 제대로 조회된다.
+ (조인 조건 양쪽에 (+) 기호를 붙일 수 없음)
+
+
+>
+SELECT a.employee_id,
+       a.first_name||' '||a.last_name emp_names,
+       c.department_id,
+       c.department_name,
+       d.location_id,
+       d.street_address,
+       d.city
+FROM employees a,
+     departments c,
+     locations d
+WHERE a.department_id = c.department_id(+)
+ AND c.location_id = d.location_id(+)
+ORDER BY 1;
+
+*외부 조인은 왜 사용할까?
+
+테이블 설계가 제대로 되어 있고, 데이터가 정확히 입력되어 있다면 굳이 외부 조인을 사용할 필요가 없다.
+하지만 현실적으로 테이블 설계는 완벽히 할 수 없고, 애초에 제대로 했더라도 업무가 변경되면 로직 수정이 불가피하다.
+
+
+
+#ANSI조인
+
+-ANSI 표준 문법으로 작성한 조인 방법
+-내부 조인, 외부 조인을 ANSI 문법에 맞게 작성한 쿼리
+-내부조인 : INNER JOIN
+-외부조인 : LEFT OUTER JOIN, RIGHT OUTER JOIN, FULL OUTER JOIN
+-FULL OUTER JOIN은 ANSI 문법으로만 구현 가능
+-ANSI 문법은 다른 DBMS에서도 사용 가능 
+
+-조인 조건 절을 WHERE절이 아닌 FROM절에 기술
+-조인 조건은 ON 다음에 기술
+-조인 조건이 여러 개이면 AND 연산자 사용해 조건 기술
+-조인 조건 외에 다른 조건은 WHERE 절에 기술
+
+
+
+#내부조인
+>
+SELECT a.employee_id emp_id,
+       a.department_id a_dept_id,
+       b.department_id b_dept_id,
+       b.department_name dept_name
+FROM employees a
+INNER JOIN departments b
+        ON a.department_id = b.department_id
+ORDER BY a.department_id;
+
+
+#외부조인(Left Outer Join)
+
+>
+SELECT a.employee_id emp_id,
+       a.department_id a_dept_id,
+       b.department_id b_dept_id,
+       b.department_name dept_name
+FROM employees a
+LEFT OUTER JOIN department b
+             ON a.department_id = b.department_id
+ORDER BY a.employee_id;
+
+
+*OUTER 생략 가능
+
+
+#외부조인(Rigjt Outer Join)
+
+>
+SELECT a.employee_id emp_id,
+       a.department_id a_dept_id,
+       b.department_id b_dept_id,
+       b.department_name dept_name
+FROM employees a
+RIGHT OUTER JOIN department b
+              ON a.department_id = b.department_id
+ORDER BY a.employee_id;
+
+
+ **LEFT OUTER JOIN은 FROM절에서 앞에 명시한 테이블을 불러오고,
+   RIGHT OUTER JOIN은 뒤에 명시한 테이블을 불러온다. 
+   (주로 LEFT OUTER JOIN을 많이 사용-메인 테이블을 앞에 명시하기 때문에)
+
+
+
+#외부조인(Full Outer Join)
+
+-기존 문법의 외부조인에서 양 테이블 모두에 (+) 표시를 하여 둘 다 불러오는 것이 불가능했던 것을 극복
+
+>
+SELECT a.employee_id emp_id,
+       a.deparment_id a_dept_id,
+       b.department_id b_dept_id,
+       b.department_name dept_name
+FROM employees a
+FULL OUTER JOIN department b
+             ON a.department_id = b.department_id
+ORDER BY a.employee_id,
+         b.department_id;
+
+
+**일반 조인과 ANSI 조인 문법
+
+내부 조인 : 일반 조인 문법(WHERE 절에 조인 조건 기술)이 가독성 측면에서 더 좋다.
+외부 조인 : ANSI 문법
+          (+)는 오라클 고유의 문법이라 다른 DBMS에서 사용 불가
+          가독성이 일반 외부 조인보다 좋다.
+          FULL OUTER JOIN은 ANSI 문법만 가능
+
+
+#Cartesian Product
+
+-조인 조건이 없는 조인
+-조인 참여 테이블을 FROM절에 기술하고 WHERE절에 조인 조건 기술하지 않음
+-조인 조건이 없으므로, 두 테이블 기준 모든 조합(경우의 수)의 로우가 조회됨
+ ex) A테이블(3건). B테이블(5건) --> 3*5 = 15건이 조회됨
+-거의 사용되지 않음
+-ANSI문법 --> CROSS JOIN
+
+
+>
+SELECT a.region_name,
+       b.department_id,
+       b.department_name
+FROM region a,
+     department b 
+WHERE 1=1;
+
+4*24 = 104
+
+
+
+*엄밀히 말하면 조인이 아니다.(조인 조건이 없으므로)
+ 보통 조인 조건이 누락된 경우를 알아낼 때 사용(거의 안함)
+
+
+
+
+#셀프 조인(Self Join)
+
+-자기 자신과 조인
+-동일한 테이블끼리 조인
+
+>
+SELECT a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.manager_id,
+       b.first_name||' 'b.last_name manager_name
+FROM employees a,
+     employees b
+WHERE a.manager_id = b.employee_id
+ORDER BY 1; 
+
+*manager_id에 해당하는 사원명을 가져오기 위해 셀프 조인 이용
+
+>
+SELECT a.employee_id,
+       a.first_name||' '||a.last_name emp_name,
+       a.manager_id,
+       b.first_name||' 'b.last_name manager_name
+FROM employees a
+INNER JOIN employees b
+         ON a.manager_id = b.employee_id
+ORDER BY 1; 
+
+*ANSI문법으로도 가능!!
+
+
+
+
+#분석함수(Analytic Function)
+
+-로우별 그룹을 지정해서 값을 집계하는 함수
+-GROUP BY절과는 다름
+-GROUP BY절 사용 시, 집계 대상에 따라 로우 수가 줄어들었지만, 분석함수는 그렇지 않다.
+ (로우 수는 그대로, 집계 값 산출이 가능)
+-분석함수에서 말하는 로우별 그룹 -> 윈도우(Windows)절
+-분석함수와 윈도우 절이 같이 사용됨
+
+
+-일반 집계 함수(SUM, MAX, MIN, AVG 등)를 분석 함수로 사용 가능
+-그 외에 ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD 함수가 있다.
+
+
+#ROW_NUMBER(). : '순번', '일련번호'
+
+부서별로 사원의 급여 순으로 순번을 구해라.
+
+>
+SELECT b.department_id,
+       b.department_name,
+       a.first_name||' '||a.last_name,
+       ROW_NUMBER() OVER
+        (PARTITION BY b.department_id
+         ORDER BY a.salary) dept_sal_seq,
+       a.salary
+FROM employees a,
+     departments b
+WHERE a.department_id = b.department_id
+ORDER BY 2, 4;
+
+
+
+전 사원의 급여가 높은 순으로 순번을 구해라.
+
+>
+SELECT b.department_id,
+       b.department_name,
+       a.first_name||' '||a.last_name,
+       ROW_NUMBER() OVER
+        (ORDER BY a.salary desc) dept_sal_seq,
+       a.salary
+FROM employees a,
+     departments b
+WHERE a.department_id = b.department_id
+ORDER BY 4;
+
+
+
+#DENSE_RANK()  : 누적순위
+
+부서별로 사원의 급여가 높은 순 누적 순위
+
+>
+SELECT b.department_id,
+       b.department_name,
+       a.first_name||' '||a.last_name,
+       DENSE_RANK() OVER
+        (PARTITION BY b.department_id
+         ORDER BY a.salary desc) dept_sal_seq,
+       a.salary
+FROM employees a,
+     departments b
+WHERE a.department_id = b.department_id
+ORDER BY 2, 4;
+
+
+
+#LEAD(expr)    : 후행 로우값
+
+부서별, 입사일자 순, 직후 사원의 급여를 구하라
+
+>
+SELECT b.department_id, 
+       b.department_name,
+       a.first_name||' '||a.last_name emp_name,
+       a.hire_date,
+       a.salary,
+       LEAD(salary) OVER(PARTITION BY b.department_id
+                    ORDER BY a.hire_date) lead_salary
+FROM employess a, 
+     departments b
+WHERE a.department_id = b.department_id
+ORDER BY 2, 4;
+
+
+LEAD(salary) = LEAD(salary, 1, 0)   --> 직후 사원
+
+
+만약 부서별, 입사일자 순, 2로우 후 사원의 급여를 구한다면,
+
+>
+LEAD(salary, 2, 0) OVER(PARTITION BY b.department_id,
+                   ORDER BY a.hire_date) lead_salary
+
+
+
+
+#LAG(expr, offset, default)  : 선행 로우값
+
+LEAD()와 똑같이 사용하면 됨. : '직전 사원'을 구할 때
+
+
+
+
+#MSSQL (SQL Server) - 대소문자 구분 안함
+
+SSMS(Sql Server Management Studio)
+-오라클의 SQL Developer 같은 툴
+-DB 백업과 복구까지 할 수 있는 관리용 GUI도구
+-SQL을 작성하고 결과도 확인 가능
+
+
+-기본적인 SQL은 오라클과 동일
+-외부조인은 ANSI 문법 사용
+-빌트인 함수, 컬럼 데이터형은 오라클과 차이가 있음
+ (문자형-VARCHAR, 날짜형-DATETIME, 숫자형-INT, FLOAT, DOUBLE, DECIMAL)
+
+
+
+-select getdate()  : 현재 일자 반환
+
+
+-문자열 결합 : select 'a' + 'b' -> ab
+
+-SUBSTRING 함수 : select substring('abc', 2, 1). -> 'b'
+
+-INSTR 함수 : select CHARINDEX('A', 'AB') -> 1
+ (오라클의 INSTR함수와 순서 반대)
+
+-문자열 길이 : select len('홍'), DATALENGTH('홍') -> 1, 2
+ (LENGTH -> LEN, LENGTHB -> DATALENGTH)
+ (한 글자가 2byte)
+
+-select left('abc', 1), right('abc', 1)  -> a, c
+
+-select IsNull(null, 'b') -> b
+ (NVL -> IsNull)
+
+-select 17 % 3 -> 2
+ (나머지 Mod 함수 -> % 연산자)
+
+-현재 일자 기준 1개월 후
+  select DATEADD(MM, 1, GETDATE())
+
+-MINUS -> EXCEPT
+
+-오라클에서와 달리 ''(empty string)은 NULL이 아님
+
+-select top 5 salary, employee_id
+ from employees;
+
+ (top함수 존재)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
